@@ -1,47 +1,61 @@
+import { MongoClient, ObjectId } from 'mongodb';
+
 import MeetupDetail from "../../components/meetups/MeetupDetail";
 
-function MeetupDetails(){
+function MeetupDetails(props){
     return (
         <MeetupDetail 
-        image = "https://cdn.britannica.com/36/162636-050-932C5D49/Colosseum-Rome-Italy.jpg?q=60"
-        title = "First Meetup"
-        address = "Some City, 12345, Some Neighbourhood"
-        description = "The First Meetup"/>
+        image = {props.meetupData.image}
+        title = {props.meetupData.title}
+        address = {props.meetupData.address}
+        description = {props.meetupData.description}/>
     )
 }
 
 export async function getStaticPaths(){
+    const client = await MongoClient.connect('mongodb+srv://Hemang417:Hemang417@cluster0.nlsiivc.mongodb.net/meetup_database?retryWrites=true&w=majority');
+
+        const db = client.db();
+
+        const meetup_databaseCollection = db.collection('meetup_table');
+
+        const meetups = await meetup_databaseCollection.find({}, { _id: 1 }).toArray();
+
+        client.close();
+
     return {
         fallback: false,
-        paths: [
-            { 
-                params: {
-                meetupID: 'm1',
-                }, 
-            },
-            { 
-                params: {
-                meetupID: 'm2',
-                }, 
-            },
-        ],
-            
+        paths: meetups.map((meetup) => ({
+            params: {
+                meetupID: meetup._id.toString(),
+            }
+        })),
+
         };
     }
 
 export async function getStaticProps(context){
-
+    // console.log(context);
     const meetupId = context.params.meetupID;
-    console.log(meetupId);
+    // console.log(meetupId);
+    const client = await MongoClient.connect('mongodb+srv://Hemang417:Hemang417@cluster0.nlsiivc.mongodb.net/meetup_database?retryWrites=true&w=majority');
+
+    const db = client.db();
+
+    const meetup_databaseCollection = db.collection('meetup_table');
+
+    const selectedMeetup = await meetup_databaseCollection.findOne({ _id: ObjectId(meetupId) })
+
+    client.close();
     return {
         props: {
             meetupData: {
-                image: "https://cdn.britannica.com/36/162636-050-932C5D49/Colosseum-Rome-Italy.jpg?q=60",
-                title: "First Meetup",
-                id: meetupId,
-                address: "Some City, 12345, Some Neighbourhood",
-                description: "The First Meetup",
-            }
+                id: selectedMeetup._id.toString(),
+                title: selectedMeetup.title,
+                address: selectedMeetup.address,
+                image: selectedMeetup.image,
+                description: selectedMeetup.description,
+            },
         }
     };
 }
